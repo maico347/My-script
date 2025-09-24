@@ -1,0 +1,210 @@
+-- LocalScript (put in StarterGui)
+-- Features:
+--  * activate = true/false  -> show or hide the UI
+--  * drag = true/false      -> allow dragging the frame
+--  * TextLabel displays "working"
+--  * Copy button copies a link using setclipboard (if available)
+--  * Smooth tweens and hover effects
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+-- CONFIG
+local activate = true
+local drag = true
+local linkToCopy = "https://example.com" -- change to your link
+local uiName = "CopyLinkUI"
+
+-- Remove existing duplicate UI if present
+local existing = CoreGui:FindFirstChild(uiName)
+if existing then existing:Destroy() end
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = uiName
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+screenGui.Enabled = activate
+
+-- Main container frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 160)
+frame.Position = UDim2.new(0.5, -160, 0.5, -80)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(28, 30, 34)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.ZIndex = 2
+
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 18)
+
+-- Subtle top accent bar
+local accent = Instance.new("Frame")
+accent.Size = UDim2.new(1, 0, 0, 6)
+accent.Position = UDim2.new(0, 0, 0, 0)
+accent.BackgroundColor3 = Color3.fromRGB(66, 133, 244)
+accent.BorderSizePixel = 0
+accent.ClipsDescendants = true
+accent.Parent = frame
+
+-- Drop shadow via ImageLabel (slice)
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.BackgroundTransparency = 1
+shadow.Size = UDim2.new(1, 40, 1, 40)
+shadow.Position = UDim2.new(0.5, -20, 0.5, -20)
+shadow.Image = "rbxassetid://5028857472"
+shadow.ImageColor3 = Color3.fromRGB(0,0,0)
+shadow.ImageTransparency = 0.6
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(24,24,276,276)
+shadow.ZIndex = 1
+shadow.Parent = frame
+
+-- Title (shows "working" per request)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -28, 0, 36)
+title.Position = UDim2.new(0, 14, 0, 22)
+title.BackgroundTransparency = 1
+title.Text = "working"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(245,245,245)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+title.ZIndex = 3
+
+-- Description / small subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -28, 0, 20)
+subtitle.Position = UDim2.new(0, 14, 0, 52)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Click the button to copy the link."
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 14
+subtitle.TextColor3 = Color3.fromRGB(200,200,200)
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = frame
+subtitle.ZIndex = 3
+
+-- Copy Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.76, 0, 0, 44)
+button.Position = UDim2.new(0.12, 0, 0.6, 0)
+button.BackgroundColor3 = Color3.fromRGB(58, 134, 255)
+button.AutoButtonColor = false
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
+button.Text = "Copy Link"
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Parent = frame
+button.ZIndex = 3
+
+local btnCorner = Instance.new("UICorner", button)
+btnCorner.CornerRadius = UDim.new(0, 12)
+
+-- small icon circle left of button text (visual flair)
+local btnIcon = Instance.new("Frame")
+btnIcon.Size = UDim2.new(0, 34, 0, 34)
+btnIcon.Position = UDim2.new(0, 8, 0.08, 0)
+btnIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
+btnIcon.Parent = button
+btnIcon.AnchorPoint = Vector2.new(0, 0)
+btnIcon.ZIndex = 4
+btnIcon.BackgroundTransparency = 0.12
+local iconCorner = Instance.new("UICorner", btnIcon)
+iconCorner.CornerRadius = UDim.new(0, 10)
+
+-- Hover animations
+button.MouseEnter:Connect(function()
+	TweenService:Create(button, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(79, 156, 255)}):Play()
+end)
+button.MouseLeave:Connect(function()
+	TweenService:Create(button, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(58, 134, 255)}):Play()
+end)
+
+-- Button click functionality (copy to clipboard if setclipboard exists)
+button.MouseButton1Click:Connect(function()
+	-- visual feedback
+	local originalText = button.Text
+	button.Text = "Copied!"
+	TweenService:Create(button, TweenInfo.new(0.22), {BackgroundColor3 = Color3.fromRGB(0, 185, 120)}):Play()
+
+	-- attempt copy
+	if setclipboard then
+		pcall(function()
+			setclipboard(linkToCopy)
+		end)
+	end
+
+	-- reset after short delay
+	task.delay(1.2, function()
+		if button and button.Parent then
+			button.Text = originalText
+			TweenService:Create(button, TweenInfo.new(0.22), {BackgroundColor3 = Color3.fromRGB(58, 134, 255)}):Play()
+		end
+	end)
+end)
+
+-- Pop-in opening animation (scale effect)
+do
+	local startSize = UDim2.new(0, 0, 0, 0)
+	frame.Size = startSize
+	TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 320, 0, 160)
+	}):Play()
+end
+
+-- Dragging behavior (only if drag = true)
+if drag then
+	local dragging = false
+	local dragInput, dragStart, startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+
+	frame.InputBegan:Connect(function(input)
+		if not activate then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			update(input)
+		end
+	end)
+end
+
+-- Make sure UI visibility follows 'activate' while running (optional toggle support)
+-- You can change 'activate' variable at runtime if you want to hide/show the UI via script
+local function setActivated(state)
+	screenGui.Enabled = state
+end
+
+-- Expose a simple API on the screenGui for other scripts (optional)
+screenGui:SetAttribute("LinkToCopy", linkToCopy)
+screenGui:SetAttribute("Activate", activate)
+screenGui:SetAttribute("Draggable", drag)
+
+-- (Optional) A quick way for other scripts to toggle the UI:
+-- screenGui.Activated = setActivated
+
+-- End of script
